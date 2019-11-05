@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 
-"""Juniper JCL generator."""
+"""Capirca generator."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -35,7 +35,7 @@ class Error(Exception):
   pass
 
 
-class JuniperTermPortProtocolError(Error):
+class CapircaTermPortProtocolError(Error):
   pass
 
 
@@ -43,7 +43,7 @@ class TcpEstablishedWithNonTcpError(Error):
   pass
 
 
-class JuniperDuplicateTermError(Error):
+class CapircarDuplicateTermError(Error):
   pass
 
 
@@ -55,19 +55,19 @@ class PrecedenceError(Error):
   pass
 
 
-class JuniperIndentationError(Error):
+class CapircaIndentationError(Error):
   pass
 
 
-class JuniperNextIpError(Error):
+class CapircaNextIpError(Error):
   pass
 
 
-class JuniperMultipleTerminatingActionError(Error):
+class CapircaMultipleTerminatingActionError(Error):
   pass
 
 
-class JuniperFragmentInV6Error(Error):
+class CapircaFragmentInV6Error(Error):
   pass
 
 
@@ -91,7 +91,7 @@ class Config(object):
 
   def __str__(self):
     if self.indent != self._initial_indent:
-      raise JuniperIndentationError(
+      raise CapircaIndentationError(
           'Expected indent %d but got %d' % (self._initial_indent, self.indent))
     return '\n'.join(self.lines)
 
@@ -112,7 +112,7 @@ class Config(object):
     if line.endswith('}'):
       self.indent -= self.tabstop
       if self.indent < self._initial_indent:
-        raise JuniperIndentationError('Too many close braces.')
+        raise CapircaIndentationError('Too many close braces.')
     spaces = ' ' * self.indent
     self.lines.append(spaces + line.strip())
     if line.endswith(' {'):
@@ -129,7 +129,7 @@ class Term(aclgenerator.Term):
     term_type: the address family for the term, one of "inet", "inet6",
       or "bridge"
   """
-  _PLATFORM = 'juniper'
+  _PLATFORM = 'capirca'
   _DEFAULT_INDENT = 12
   ACTIONS = {'accept': 'accept',
              'deny': 'discard',
@@ -789,8 +789,8 @@ class Term(aclgenerator.Term):
     return rval
 
 
-class Juniper(aclgenerator.ACLGenerator):
-  """JCL rendering class.
+class Capirca(aclgenerator.ACLGenerator):
+  """Numpy rendering class.
 
     This class takes a policy object and renders the output into a syntax
     which is understood by juniper routers.
@@ -799,7 +799,7 @@ class Juniper(aclgenerator.ACLGenerator):
     pol: policy.Policy object
   """
 
-  _PLATFORM = 'juniper'
+  _PLATFORM = 'capirca'
   _DEFAULT_PROTOCOL = 'ip'
   _SUPPORTED_AF = set(('inet', 'inet6', 'bridge'))
   _TERM = Term
@@ -858,7 +858,7 @@ class Juniper(aclgenerator.ACLGenerator):
     return supported_tokens, supported_sub_tokens
 
   def _TranslatePolicy(self, pol, exp_info):
-    self.juniper_policies = []
+    self.capirca_policies = []
     current_date = datetime.datetime.utcnow().date()
     exp_info_date = current_date + datetime.timedelta(weeks=exp_info)
 
@@ -890,7 +890,7 @@ class Juniper(aclgenerator.ACLGenerator):
       for term in terms:
         term.name = self.FixTermLength(term.name)
         if term.name in term_names:
-          raise JuniperDuplicateTermError('You have multiple terms named: %s' %
+          raise CapircaDuplicateTermError('You have multiple terms named: %s' %
                                           term.name)
         term_names.add(term.name)
 
@@ -907,19 +907,19 @@ class Juniper(aclgenerator.ACLGenerator):
                          'will not be rendered.', term.name, filter_name)
             continue
         if 'is-fragment' in term.option and filter_type == 'inet6':
-          raise JuniperFragmentInV6Error('The term %s uses "is-fragment" but '
+          raise CapircaFragmentInV6Error('The term %s uses "is-fragment" but '
                                          'is a v6 policy.' % term.name)
 
         new_terms.append(self._TERM(term, filter_type, enable_dsmo, noverbose))
 
-      self.juniper_policies.append((header, filter_name, filter_type,
+      self.capirca_policies.append((header, filter_name, filter_type,
                                     interface_specific, new_terms))
 
   def __str__(self):
     config = Config()
 
     for (header, filter_name, filter_type, interface_specific, terms
-        ) in self.juniper_policies:
+        ) in self.capirca_policies:
       # add the header information
       config.Append('firewall {')
       config.Append('family %s {' % filter_type)

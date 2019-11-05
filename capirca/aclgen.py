@@ -52,6 +52,7 @@ from capirca.lib import policy
 from capirca.lib import speedway
 from capirca.lib import srxlo
 from capirca.lib import windows_advfirewall
+from capirca.lib import tensor
 
 
 FLAGS = flags.FLAGS
@@ -174,6 +175,8 @@ def RenderFile(input_file, output_directory, definitions,
   win_afw = False
   xacl = False
   paloalto = False
+  np_tensor = False
+  cap_pol = False
 
   try:
     conf = open(input_file).read()
@@ -238,6 +241,10 @@ def RenderFile(input_file, output_directory, definitions,
     paloalto = copy.deepcopy(pol)
   if 'cloudarmor' in platforms:
     gca = copy.deepcopy(pol)
+  if 'tensor' in platforms:
+    np_tensor = copy.deepcopy(pol)
+  if 'capirca' in platforms:
+    cap_pol = copy.deepcopy(pol)
 
   if not output_directory.endswith('/'):
     output_directory += '/'
@@ -327,6 +334,15 @@ def RenderFile(input_file, output_directory, definitions,
       acl_obj = cloudarmor.CloudArmor(gca, exp_info)
       RenderACL(str(acl_obj), acl_obj.SUFFIX, output_directory,
                 input_file, write_files)
+    if np_tensor:
+      acl_obj = tensor.Tensor(np_tensor, exp_info)
+      RenderACL(str(acl_obj), acl_obj.SUFFIX, output_directory,
+                input_file, write_files)
+    if cap_pol:
+      acl_obj = capirca.Capirca(cap_pol, exp_info)
+      RenderACL(str(acl_obj), acl_obj.SUFFIX, output_directory,
+                input_file, write_files)
+
   # TODO(robankeny) add additional errors.
   except (juniper.Error, junipersrx.Error, cisco.Error, ipset.Error,
           iptables.Error, speedway.Error, pcap.Error,
